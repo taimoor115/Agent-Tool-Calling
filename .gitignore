@@ -2,5 +2,6 @@ node_modules/
 dist/
 .env
 *.log
-data/*.sqlite
-data/*.db
+
+# Generated SQLite database (recreate with `npm run seed`)
+data/
