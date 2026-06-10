@@ -32,51 +32,50 @@ function seed(): void {
     );
   `);
 
-  const users: Array<{ name: string; email: string; created_at: string; plan: "free" | "pro" }> = [
-    { name: "Alice Johnson", email: "alice@example.com", created_at: "2024-01-12", plan: "pro" },
-    { name: "Bob Smith", email: "bob@example.com", created_at: "2024-02-03", plan: "free" },
-    { name: "Carol Martinez", email: "carol@example.com", created_at: "2024-02-20", plan: "pro" },
-    { name: "David Lee", email: "david@example.com", created_at: "2024-03-15", plan: "free" },
-    { name: "Eve Chen", email: "eve@example.com", created_at: "2024-04-01", plan: "pro" },
-    { name: "Frank Wright", email: "frank@example.com", created_at: "2024-05-09", plan: "free" },
-    { name: "Grace Kim", email: "grace@example.com", created_at: "2024-06-22", plan: "pro" },
-    { name: "Henry Patel", email: "henry@example.com", created_at: "2024-07-30", plan: "free" },
+  const users: Array<[name: string, email: string, created_at: string, plan: string]> = [
+    ["Alice Johnson", "alice@example.com", "2024-01-12", "pro"],
+    ["Bob Smith", "bob@example.com", "2024-02-03", "free"],
+    ["Carol Martinez", "carol@example.com", "2024-02-20", "pro"],
+    ["David Lee", "david@example.com", "2024-03-15", "free"],
+    ["Eve Chen", "eve@example.com", "2024-04-01", "pro"],
+    ["Frank Wright", "frank@example.com", "2024-05-09", "free"],
+    ["Grace Kim", "grace@example.com", "2024-06-22", "pro"],
+    ["Henry Patel", "henry@example.com", "2024-07-30", "free"],
   ];
 
   const insertUser = db.prepare(
-    "INSERT INTO users (name, email, created_at, plan) VALUES (@name, @email, @created_at, @plan)"
+    "INSERT INTO users (name, email, created_at, plan) VALUES (?, ?, ?, ?)"
   );
 
-  const orders: Array<{
-    user_id: number;
-    amount: number;
-    status: "pending" | "paid" | "refunded" | "cancelled";
-    created_at: string;
-  }> = [
-    { user_id: 1, amount: 49.99, status: "paid", created_at: "2024-02-01" },
-    { user_id: 1, amount: 19.0, status: "paid", created_at: "2024-03-11" },
-    { user_id: 2, amount: 9.99, status: "pending", created_at: "2024-02-15" },
-    { user_id: 3, amount: 99.0, status: "paid", created_at: "2024-03-01" },
-    { user_id: 3, amount: 25.5, status: "refunded", created_at: "2024-04-18" },
-    { user_id: 4, amount: 5.0, status: "cancelled", created_at: "2024-03-20" },
-    { user_id: 5, amount: 149.0, status: "paid", created_at: "2024-04-10" },
-    { user_id: 5, amount: 12.0, status: "paid", created_at: "2024-05-02" },
-    { user_id: 6, amount: 0.0, status: "pending", created_at: "2024-05-12" },
-    { user_id: 7, amount: 199.99, status: "paid", created_at: "2024-06-25" },
-    { user_id: 7, amount: 49.99, status: "paid", created_at: "2024-07-04" },
-    { user_id: 8, amount: 15.0, status: "pending", created_at: "2024-08-01" },
+  const orders: Array<[user_id: number, amount: number, status: string, created_at: string]> = [
+    [1, 49.99, "paid", "2024-02-01"],
+    [1, 19.0, "paid", "2024-03-11"],
+    [2, 9.99, "pending", "2024-02-15"],
+    [3, 99.0, "paid", "2024-03-01"],
+    [3, 25.5, "refunded", "2024-04-18"],
+    [4, 5.0, "cancelled", "2024-03-20"],
+    [5, 149.0, "paid", "2024-04-10"],
+    [5, 12.0, "paid", "2024-05-02"],
+    [6, 0.0, "pending", "2024-05-12"],
+    [7, 199.99, "paid", "2024-06-25"],
+    [7, 49.99, "paid", "2024-07-04"],
+    [8, 15.0, "pending", "2024-08-01"],
   ];
 
   const insertOrder = db.prepare(
-    "INSERT INTO orders (user_id, amount, status, created_at) VALUES (@user_id, @amount, @status, @created_at)"
+    "INSERT INTO orders (user_id, amount, status, created_at) VALUES (?, ?, ?, ?)"
   );
 
-  const insertAll = db.transaction(() => {
-    for (const u of users) insertUser.run(u);
-    for (const o of orders) insertOrder.run(o);
-  });
-
-  insertAll();
+  // Simple explicit transaction for an atomic seed.
+  db.exec("BEGIN");
+  try {
+    for (const u of users) insertUser.run(...u);
+    for (const o of orders) insertOrder.run(...o);
+    db.exec("COMMIT");
+  } catch (err) {
+    db.exec("ROLLBACK");
+    throw err;
+  }
 
   const userCount = db.prepare("SELECT COUNT(*) AS c FROM users").get() as { c: number };
   const orderCount = db.prepare("SELECT COUNT(*) AS c FROM orders").get() as { c: number };

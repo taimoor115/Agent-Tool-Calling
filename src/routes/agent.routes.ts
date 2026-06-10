@@ -49,36 +49,41 @@ agentRouter.get(
     res.setHeader("Connection", "keep-alive");
     res.flushHeaders();
 
+    let closed = false;
     const emit = (event: AgentEvent): void => {
-      res.write(`data: ${JSON.stringify(event)}\n\n`);
+      if (!closed) res.write(`data: ${JSON.stringify(event)}\n\n`);
     };
 
-    // Replay any events that already happened before this client connected.
-    const alreadyDone = run.status !== "running";
-    for (const step of run.steps) {
-      emit(step);
-    }
+    // `run.steps` is the authoritative ordered log — every emitted event is
+    // appended there before the bus fires. We drive all output from it and use
+    // the bus purely as a "something changed" trigger. `sentCount` tracks how
+    // many steps we've already written, so flushing is idempotent and free of
+    // both the replay/subscribe race AND duplicate events.
+    let sentCount = 0;
+    let unsubscribe = (): void => {};
 
-    // If the run already finished, close immediately after replay.
-    if (alreadyDone) {
-      // Ensure a terminal `done` was sent even if status flipped mid-replay.
-      const lastWasDone = run.steps[run.steps.length - 1]?.type === "done";
-      if (!lastWasDone) emit({ type: "done" });
-      res.end();
-      return;
-    }
-
-    // Subscribe to live events.
-    const unsubscribe = subscribe(runId, (event) => {
-      emit(event);
-      if (event.type === "done") {
-        unsubscribe();
-        res.end();
+    const flush = (): void => {
+      while (sentCount < run.steps.length) {
+        const event = run.steps[sentCount];
+        sentCount += 1;
+        emit(event);
+        if (event.type === "done") {
+          unsubscribe();
+          closed = true;
+          res.end();
+          return;
+        }
       }
-    });
+    };
+
+    // Subscribe first, then flush — so any event landing during setup is caught
+    // by the post-subscribe flush, which always reads the latest steps.
+    unsubscribe = subscribe(runId, flush);
+    flush();
 
     // Handle client disconnect — cleanup the subscription.
     req.on("close", () => {
+      closed = true;
       unsubscribe();
     });
   })
