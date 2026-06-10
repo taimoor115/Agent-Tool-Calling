@@ -37,7 +37,9 @@ src/
 
 ## Prerequisites
 
-- Node.js 20+
+- **Node.js 22.5+** — the database layer uses the built-in `node:sqlite` module
+  (run behind the `--experimental-sqlite` flag, which is already wired into the
+  `dev`, `seed`, and `start` scripts). No native compiler or prebuilt binary needed.
 - An [OpenAI API key](https://platform.openai.com/)
 - A [Tavily API key](https://tavily.com/) (free tier)
 
@@ -66,6 +68,14 @@ npm start
 
 The server validates all env vars at startup with Zod — if a key is missing it
 **crashes immediately** with a clear message rather than booting in a bad state.
+
+> **Port in use?** If `PORT=3001` is taken, set a different port in `.env` (e.g.
+> `PORT=3005`) — the server reads `PORT` from the validated env.
+
+> **Database driver note:** The spec named `better-sqlite3`, but that requires a
+> native build (C++ toolchain) or a prebuilt-binary download. This project uses
+> Node's built-in `node:sqlite` instead — identical synchronous
+> `prepare/all/run/exec` API, zero native dependencies, runs anywhere Node 22.5+ does.
 
 ## API
 
