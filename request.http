@@ -1,0 +1,115 @@
+###############################################################################
+# DevAgent — API requests
+#
+# HOW TO USE:
+#   1. Install the "REST Client" VS Code extension (publisher: Huachao Mao).
+#   2. Make sure the server is running:  npm run dev
+#   3. Click the "Send Request" link that appears above each request below.
+#
+# The @port is set to 3005 because port 3001 was in use on this machine.
+# If you run on 3001, just change @port below to 3001.
+###############################################################################
+
+@port = 3005
+@baseUrl = http://localhost:{{port}}
+
+
+### 1. Health check — is the server alive?
+GET {{baseUrl}}/health
+
+
+### 2. List all available tools
+GET {{baseUrl}}/api/tools/list
+
+
+### 3. Start an agent run (DATABASE example)
+# This request is NAMED "startRun" so the next requests can reuse its runId.
+# @name startRun
+POST {{baseUrl}}/api/agent/run
+Content-Type: application/json
+
+{
+  "prompt": "How many pro-plan users are there, and what is the sum of all paid order amounts? Verify the sum with the calculator."
+}
+
+
+### 4. Stream the run live (SSE) — watch each tool call as it happens
+# Uses the runId captured from request #3 above.
+GET {{baseUrl}}/api/agent/{{startRun.response.body.runId}}/stream
+
+
+### 5. Poll the run's status (run it again after a few seconds to see "done")
+GET {{baseUrl}}/api/agent/{{startRun.response.body.runId}}/status
+
+
+###############################################################################
+# More example prompts — each exercises a different tool.
+# Send one, then use #4 / #5 above (they always point at the latest startRun),
+# OR copy the runId from the response and paste it into the URLs manually.
+###############################################################################
+
+### Agent run — WEB SEARCH example (Tavily)
+# @name webRun
+POST {{baseUrl}}/api/agent/run
+Content-Type: application/json
+
+{
+  "prompt": "Search the web for the latest stable Node.js version and tell me what it is in one sentence."
+}
+
+### Stream the web-search run
+GET {{baseUrl}}/api/agent/{{webRun.response.body.runId}}/stream
+
+
+### Agent run — CODE RUNNER example (JS sandbox)
+# @name codeRun
+POST {{baseUrl}}/api/agent/run
+Content-Type: application/json
+
+{
+  "prompt": "Run JavaScript to compute the first 10 Fibonacci numbers and return them as an array."
+}
+
+### Stream the code-runner run
+GET {{baseUrl}}/api/agent/{{codeRun.response.body.runId}}/stream
+
+
+### Agent run — CALCULATOR example (mathjs)
+# @name calcRun
+POST {{baseUrl}}/api/agent/run
+Content-Type: application/json
+
+{
+  "prompt": "What is 1234 * 5678 divided by 3, rounded to the nearest integer?"
+}
+
+### Stream the calculator run
+GET {{baseUrl}}/api/agent/{{calcRun.response.body.runId}}/stream
+
+
+### Agent run — MULTI-TOOL example (web_search THEN calculator)
+# @name multiRun
+POST {{baseUrl}}/api/agent/run
+Content-Type: application/json
+
+{
+  "prompt": "What is the latest Node.js version, and roughly how many days ago was it released?"
+}
+
+### Stream the multi-tool run
+GET {{baseUrl}}/api/agent/{{multiRun.response.body.runId}}/stream
+
+
+###############################################################################
+# Error / edge cases — handy for testing validation & error handling
+###############################################################################
+
+### Missing prompt -> 400 VALIDATION_ERROR
+POST {{baseUrl}}/api/agent/run
+Content-Type: application/json
+
+{
+}
+
+### Unknown runId -> 404 RUN_NOT_FOUND
+GET {{baseUrl}}/api/agent/does-not-exist/status
