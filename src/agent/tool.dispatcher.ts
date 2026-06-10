@@ -13,10 +13,7 @@ const REGISTRY: Record<string, Tool> = {
   [codeRunnerTool.name]: codeRunnerTool,
 };
 
-/**
- * Routes a tool call to its implementation. Tool failures NEVER crash the
- * agent loop — they are caught and returned as `{ error }` results.
- */
+
 export async function dispatchTool(
   name: string,
   args: Record<string, unknown>

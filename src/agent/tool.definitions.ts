@@ -1,10 +1,6 @@
-// src/agent/tool.definitions.ts
 import OpenAI from "openai";
 
-/**
- * OpenAI-compatible tool (function) definitions. These JSON schemas tell the
- * model which tools exist and what arguments they accept.
- */
+
 export const TOOL_DEFINITIONS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   {
     type: "function",
@@ -82,7 +78,6 @@ export const TOOL_DEFINITIONS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
   },
 ];
 
-/** Lightweight listing used by GET /api/tools/list. */
 export const TOOL_LIST = TOOL_DEFINITIONS.map((t) => ({
   name: t.function.name,
   description: t.function.description ?? "",

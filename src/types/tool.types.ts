@@ -1,4 +1,3 @@
-// src/types/tool.types.ts
 
 export interface Tool {
   name: string;

@@ -1,4 +1,3 @@
-// src/agent/agent.loop.ts
 import OpenAI from "openai";
 import { env } from "../config/env";
 import { TOOL_DEFINITIONS } from "./tool.definitions";
