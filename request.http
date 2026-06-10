@@ -35,7 +35,7 @@ Content-Type: application/json
 
 ### 4. Stream the run live (SSE) — watch each tool call as it happens
 # Uses the runId captured from request #3 above.
-GET {{baseUrl}}/api/agent/{{startRun.response.body.runId}}/stream
+GET {{baseUrl}}/api/agent/61e355dc-cd5d-44d2-9e4f-3659c85ffa5c/stream
 
 
 ### 5. Poll the run's status (run it again after a few seconds to see "done")
@@ -71,7 +71,7 @@ Content-Type: application/json
 }
 
 ### Stream the code-runner run
-GET {{baseUrl}}/api/agent/{{codeRun.response.body.runId}}/stream
+GET {{baseUrl}}/api/agent/efa39486-23ae-4ea8-8bc7-845d9b6b6c31/stream
 
 
 ### Agent run — CALCULATOR example (mathjs)
