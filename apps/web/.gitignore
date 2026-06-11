@@ -10,3 +10,5 @@ next-env.d.ts.bak
 # Vercel / misc
 .vercel
 *.tsbuildinfo
+
+.vercel
