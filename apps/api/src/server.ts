@@ -1,11 +1,18 @@
 // src/server.ts
 import express from "express";
+import cors from "cors";
 import { env } from "./config/env";
 import { logger } from "./config/logger";
 import { agentRouter } from "./routes/agent.routes";
 import { errorMiddleware } from "./middleware/error.middleware";
 
 const app = express();
+
+// Allow the web frontend (different origin/port) to call this API, including
+// the SSE stream. CORS_ORIGIN can be a comma-separated allowlist; defaults to
+// "*" in development for convenience.
+const corsOrigins = env.CORS_ORIGIN === "*" ? true : env.CORS_ORIGIN.split(",").map((o) => o.trim());
+app.use(cors({ origin: corsOrigins }));
 
 app.use(express.json());
 

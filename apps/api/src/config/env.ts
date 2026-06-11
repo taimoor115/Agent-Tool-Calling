@@ -8,6 +8,9 @@ const EnvSchema = z.object({
   TAVILY_API_KEY: z.string().min(1, "TAVILY_API_KEY is required"),
   PORT: z.coerce.number().default(3001),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  // Allowed CORS origin(s) for the web frontend. "*" allows any (dev default),
+  // or a comma-separated list e.g. "http://localhost:3000,https://app.example.com".
+  CORS_ORIGIN: z.string().default("*"),
 });
 
 const parsed = EnvSchema.safeParse(process.env);
