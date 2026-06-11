@@ -48,8 +48,9 @@ export default function Home() {
           )}
         </div>
 
-        {/* Right column: live stream */}
-        <div className="min-h-[28rem] lg:h-[calc(100vh-10rem)] lg:min-h-0">
+        {/* Right column: live stream — min-w-0 prevents the 1fr column from
+            expanding past the viewport when tool results contain long text */}
+        <div className="min-w-0 min-h-[28rem] lg:h-[calc(100vh-10rem)] lg:min-h-0">
           <EventStream
             events={agent.events}
             status={agent.status}

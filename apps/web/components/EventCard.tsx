@@ -29,7 +29,7 @@ export function EventCard({ event }: { event: AgentEvent }) {
             {event.tool}
           </code>
         </div>
-        <pre className="scrollbar-thin mt-2 overflow-x-auto rounded bg-black/30 p-2 text-xs text-zinc-300">
+        <pre className="scrollbar-thin mt-2 max-w-full overflow-x-auto rounded bg-black/30 p-2 text-xs text-zinc-300">
           {pretty(event.args)}
         </pre>
       </div>
@@ -60,7 +60,7 @@ export function EventCard({ event }: { event: AgentEvent }) {
             {meta.label} {isError ? "error" : "result"}
           </span>
         </div>
-        <pre className="scrollbar-thin mt-2 max-h-60 overflow-auto rounded bg-black/30 p-2 text-xs text-zinc-300">
+        <pre className="scrollbar-thin mt-2 max-h-60 max-w-full overflow-auto rounded bg-black/30 p-2 text-xs text-zinc-300">
           {pretty(event.result)}
         </pre>
       </div>
@@ -74,7 +74,7 @@ export function EventCard({ event }: { event: AgentEvent }) {
           <span>✨</span>
           <span>Final Answer</span>
         </div>
-        <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-100">
+        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-zinc-100">
           {event.content}
         </p>
       </div>

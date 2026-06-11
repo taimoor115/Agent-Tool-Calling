@@ -44,7 +44,7 @@ export function EventStream({
         </span>
       </div>
 
-      <div className="scrollbar-thin flex-1 space-y-3 overflow-y-auto p-4">
+      <div className="scrollbar-thin flex-1 space-y-3 overflow-x-hidden overflow-y-auto p-4">
         {events.length === 0 && status === "idle" && (
           <div className="flex h-full min-h-48 flex-col items-center justify-center text-center text-sm text-zinc-600">
             <span className="mb-2 text-3xl">🤖</span>
