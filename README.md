@@ -9,15 +9,24 @@ answer.
 No LangChain, no agent framework. Just a raw, readable tool-calling loop you can
 understand line by line.
 
+It ships as a **monorepo** (npm workspaces + Turborepo) with two apps:
+
+| App | Stack | What it is |
+| --- | ----- | ---------- |
+| **`apps/api`** | Express · TypeScript · OpenAI · `node:sqlite` | The agent REST API (the brain). |
+| **`apps/web`** | Next.js 16 · React 19 · Tailwind CSS v4 | A web UI that streams the agent's tool calls live in your browser. |
+
 ---
 
 ## Table of Contents
 
 - [Features](#features)
 - [How It Works](#how-it-works)
+- [Monorepo Layout](#monorepo-layout)
 - [Project Structure](#project-structure)
 - [Prerequisites](#prerequisites)
 - [Setup](#setup)
+- [The Web UI](#the-web-ui)
 - [Using the API](#using-the-api)
   - [With `request.http` (easiest)](#with-requesthttp-easiest)
   - [With `curl`](#with-curl)
@@ -33,7 +42,7 @@ understand line by line.
 
 ## Features
 
-- 🔁 **Raw tool-calling loop** (`src/agent/agent.loop.ts`) — max 10 iterations, no magic.
+- 🔁 **Raw tool-calling loop** (`apps/api/src/agent/agent.loop.ts`) — max 10 iterations, no magic.
 - 🧰 **4 real tools**:
   - `web_search` — Tavily API (top 3 results, 5s timeout).
   - `db_query` — natural language → SQL → SQLite (SELECT-only, guarded).
@@ -73,11 +82,26 @@ loops.
 
 ---
 
+## Monorepo Layout
+
+```
+agent-tool-calling/
+├── package.json              # workspaces root + turbo scripts
+├── turbo.json                # Turborepo task pipeline
+├── request.http              # Ready-to-send API requests (REST Client)
+└── apps/
+    ├── api/                  # Express agent API  (@devagent/api)
+    └── web/                  # Next.js 16 web UI  (@devagent/web)
+```
+
+Tooling: **npm workspaces** (dependency hoisting) + **Turborepo** (run/build both
+apps with one command, with caching).
+
 ## Project Structure
 
 ```
-src/
-├── server.ts                 # Express app bootstrap + health check
+apps/api/src/
+├── server.ts                 # Express bootstrap + CORS + health check
 ├── routes/agent.routes.ts    # All 4 API routes + SSE
 ├── agent/
 │   ├── agent.loop.ts         # Core agent loop (talks to OpenAI)
@@ -90,7 +114,12 @@ src/
 ├── store/run.store.ts        # In-memory run store (Map)
 ├── middleware/               # error (asyncHandler) + validate middleware
 └── config/                   # Zod env schema + pino logger
-request.http                  # Ready-to-send example requests (REST Client)
+
+apps/web/
+├── app/                      # Next.js App Router (layout, page, globals.css)
+├── components/               # PromptForm, ToolsList, EventStream, EventCard
+├── hooks/useAgentRun.ts      # Drives a run + consumes the SSE stream
+└── lib/                      # API client + shared event types
 ```
 
 ---
@@ -107,29 +136,66 @@ request.http                  # Ready-to-send example requests (REST Client)
 
 ## Setup
 
+Run everything from the **repo root** — npm workspaces + Turborepo handle both apps.
+
 ```bash
-# 1. Install dependencies
+# 1. Install all dependencies (api + web) from the root
 npm install
 
-# 2. Configure environment
-cp .env.example .env       # then fill in your keys
+# 2. Configure the API environment
+cp apps/api/.env.example apps/api/.env    # then fill in your keys
 #   OPENAI_API_KEY=sk-...
 #   TAVILY_API_KEY=tvly-...
-#   PORT=3001
+#   PORT=3001                              # API port
+#   CORS_ORIGIN=*                          # or http://localhost:3000
 
-# 3. Seed the SQLite database (users + orders mock data)
+# 3. Configure the web environment (point it at the API)
+cp apps/web/.env.example apps/web/.env.local
+#   NEXT_PUBLIC_API_URL=http://localhost:3001
+
+# 4. Seed the SQLite database (users + orders mock data)
 npm run seed
 
-# 4. Run in dev mode (hot reload)
+# 5. Run BOTH apps together (Turborepo)
 npm run dev
+#   → API  on http://localhost:3001
+#   → Web  on http://localhost:3000
 
-# ...or build + run for production
+# ...or run just one
+npm run dev:api      # API only
+npm run dev:web      # web only
+
+# Production build
 npm run build
-npm start
 ```
 
-The server validates all env vars at startup with Zod — if a key is missing it
+Open **http://localhost:3000** and start asking the agent questions.
+
+The API validates all env vars at startup with Zod — if a key is missing it
 **exits immediately** with a clear message rather than booting in a bad state.
+
+> **Port conflict?** If `3001` is taken, set a different `PORT` in `apps/api/.env`
+> **and** matching `NEXT_PUBLIC_API_URL` in `apps/web/.env.local`.
+
+---
+
+## The Web UI
+
+The Next.js frontend (`apps/web`) is a live agent console:
+
+- A **prompt box** (with example chips) that starts a run via `POST /api/agent/run`.
+- A **live activity feed** that opens an `EventSource` to the SSE `/stream` endpoint
+  and renders each `tool_call`, `tool_result`, and the `final_answer` as it arrives —
+  colour-coded per tool, with auto-scroll and a run-status badge.
+- A **tools panel** populated from `GET /api/tools/list`.
+
+The streaming logic lives in [`apps/web/hooks/useAgentRun.ts`](./apps/web/hooks/useAgentRun.ts):
+it POSTs the prompt, gets a `runId`, opens an `EventSource` to the stream, and
+appends events to React state until the terminal `done`. The API client and shared
+event types are in [`apps/web/lib`](./apps/web/lib).
+
+> The browser talks to the API directly, so the API has **CORS** enabled
+> (`apps/api/src/server.ts`, configurable via `CORS_ORIGIN`).
 
 ---
 
@@ -241,7 +307,7 @@ More prompts to try (each exercises a different tool):
 | `calculator` | `{ expression }` | Evaluates a math expression with `mathjs`. Invalid input returns `{ error }`. |
 | `code_runner` | `{ code }` | Runs JS in a `vm.runInNewContext()` sandbox (3s hard timeout), captures `console.log`. Never uses `eval()`. |
 
-Every tool implements the same contract (`src/types/tool.types.ts`):
+Every tool implements the same contract (`apps/api/src/types/tool.types.ts`):
 
 ```ts
 export interface Tool {
@@ -267,13 +333,18 @@ orders(id, user_id, amount, status, created_at)  status ∈ {pending, paid, refu
 
 ## Scripts
 
-| Script              | Description                          |
-| ------------------- | ------------------------------------ |
-| `npm run dev`       | Hot-reload dev server (`tsx watch`)  |
-| `npm run build`     | Compile TypeScript to `dist/`        |
-| `npm start`         | Run the compiled server              |
-| `npm run seed`      | (Re)seed the SQLite database         |
-| `npm run typecheck` | Type-check with no emit              |
+Run these from the **repo root** (Turborepo fans them out to both apps):
+
+| Script              | Description                                            |
+| ------------------- | ----------------------------------------------------- |
+| `npm run dev`       | Run **both** apps (API + web) with hot reload         |
+| `npm run dev:api`   | Run only the API (`tsx watch`)                        |
+| `npm run dev:web`   | Run only the web UI (`next dev`)                      |
+| `npm run build`     | Build both apps (`tsc` + `next build`)               |
+| `npm run typecheck` | Type-check both apps                                  |
+| `npm run seed`      | (Re)seed the API's SQLite database                    |
+
+Per-app scripts still work too, e.g. `npm run start --workspace @devagent/api`.
 
 ---
 

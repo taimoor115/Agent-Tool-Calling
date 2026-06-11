@@ -1,7 +1,16 @@
 node_modules/
 dist/
 .env
+.env.local
 *.log
 
 # Generated SQLite database (recreate with `npm run seed`)
 data/
+
+# Turborepo
+.turbo/
+
+# Next.js build output (also ignored per-app)
+.next/
+out/
+*.tsbuildinfo
