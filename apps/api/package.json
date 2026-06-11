@@ -19,6 +19,9 @@
     "express"
   ],
   "license": "MIT",
+  "engines": {
+    "node": "22.x"
+  },
   "dependencies": {
     "@tavily/core": "^0.5.11",
     "cors": "^2.8.5",

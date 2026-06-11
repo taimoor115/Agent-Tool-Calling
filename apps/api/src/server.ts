@@ -27,16 +27,19 @@ app.use("/api", agentRouter);
 // Global error handler — must be registered last.
 app.use(errorMiddleware);
 
-const server = app.listen(env.PORT, () => {
-  logger.info(`🚀 DevAgent listening on http://localhost:${env.PORT}`);
-});
+// In Vercel serverless the runtime manages the HTTP server; only bind locally.
+if (!process.env.VERCEL) {
+  const server = app.listen(env.PORT, () => {
+    logger.info(`🚀 DevAgent listening on http://localhost:${env.PORT}`);
+  });
 
-// Graceful shutdown.
-const shutdown = (signal: string): void => {
-  logger.info(`${signal} received — shutting down`);
-  server.close(() => process.exit(0));
-};
-process.on("SIGINT", () => shutdown("SIGINT"));
-process.on("SIGTERM", () => shutdown("SIGTERM"));
+  const shutdown = (signal: string): void => {
+    logger.info(`${signal} received — shutting down`);
+    server.close(() => process.exit(0));
+  };
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+}
 
 export { app };
+export default app;
